@@ -1,18 +1,127 @@
 
+"use client"
+import { useState, useEffect } from "react";
+import {
+  collection,
+  addDoc,
+  getDoc,
+  querySnapshot,
+  query,
+  onSnapshot,
+  deleteDoc,
+  doc,
+} from 'firebase/firestore';
+import { db } from './firebase'; 
 
 export default function Home() {
+  const [items, setItems] = useState([
+    // { name: 'Kira', price: 1000 },
+    // { name: 'Elektrik', price: 200 },
+    // { name: 'Su', price: 100 },
+    // { name: 'Doğalgaz', price: 100 },
+    // { name: 'İnternet', price: 100 },
+    // { name: 'Yemek', price: 100 },
+  ]);
+
+  const [newItem, setNewItem] = useState({ name: '', price: '' });
+  const [total, setTotal] = useState(0);
+
+  const addItem = async (e) => {
+    e.preventDefault();
+    if (newItem.name !== '' && newItem.price !== '') {
+      await addDoc(collection(db, 'items'), {
+        name: newItem.name.trim(),
+        price: newItem.price.trim(),
+      });
+      setNewItem({ name: '', price: '' });
+    }
+  };
+  useEffect(() => {
+    const q = query(collection(db, 'items'));
+    const unsubscribe = onSnapshot(q, (querySnapshot) => {
+      let itemsArr = [];
+
+      querySnapshot.forEach((doc) => {
+        itemsArr.push({ ...doc.data(), id: doc.id });
+      });
+      setItems(itemsArr);
+
+      // Read total from itemsArr
+      const calculateTotal = () => {
+        const totalPrice = itemsArr.reduce(
+          (sum, item) => sum + parseFloat(item.price),
+          0
+        );
+        setTotal(totalPrice);
+      };
+      calculateTotal();
+      return () => unsubscribe();
+    });
+  }, []);
+  const deleteItem = async (id) => {
+    await deleteDoc(doc(db, 'items', id));
+  };
+
   return (
-    <main className="flex min-h-screen flex-col items-center justify-between sm:p-24 p-4">
-     <div className='z-10 w-full max-w-5xl items-center justify-between font-mono text-sm lg:flex'>
-           <h1 className='text-4xl p-4 text-center'> Harcama Takip</h1>
-           <div className='bg-slate-800 p-4 rounded-lg'>
-           <form className='grid grid-cols-6 items-center text-black'>
-            <input type='text' className='col-span-3 p-3 border' placeholder='Harcama gürin' />
-            <input type='text'  className='col-span-2 p-3 border'placeholder='  ₺' />
-            <button type='submit'>+</button>
-           </form>
+    <main className='flex min-h-screen flex-col items-center justify-between sm:p-24 p-4'>
+      <div className='z-10 w-full max-w-5xl items-center justify-between font-mono text-sm '>
+        <h1 className='text-4xl text-white p-4 text-center'>Suripariş App </h1>
+        <div className='bg-white p-4 rounded-lg shadow-lg'>
+          <form className='grid grid-cols-6 items-center '>
+            <input
+              value={newItem.name}
+              onChange={(e) => setNewItem({ ...newItem, name: e.target.value })}
+              className='col-span-3 p-3 border'
+              type='text'
+              placeholder='Harcama girin'
+            />
+            <input
+              value={newItem.price}
+              onChange={(e) =>
+                setNewItem({ ...newItem, price: e.target.value })
+              }
+              className='col-span-2 p-3 border mx-3'
+              type='number'
+              min={0}
+              placeholder='tutar ₺'
+            />
+            <button
+              onClick={addItem}
+              className='text-white bg-green-900 hover:bg-green-700 rounded-lg p-3 text-xl'
+              type='submit'
+            >
+              +
+            </button>
+          </form>
+          <ul>
+            {items.map((item, id) => (
+              <li
+                key={id}
+                className='my-4 w-full flex justify-between text-white bg-blue-400 rounded-lg'
+              >
+                <div className='p-4 w-full flex justify-between'>
+                  <span className='capitalize'>{item.name}</span>
+                  <span>{item.price}₺</span>
+                </div>
+                <button
+                  onClick={() => deleteItem(item.id)}
+                  className='ml-8 p-4 border-l-2 border-white-300 hover:bg-red-700 w-16 '
+                >
+                  X
+                </button>
+              </li>
+            ))}
+          </ul>
+          {items.length < 1 ? (
+            ''
+          ) : (
+            <div className='flex justify-between p-3'>
+              <span className="text-xl text-black text-bold">Toplam</span>
+              <span className="text-xl text-black text-bold">{total}₺</span>
             </div>
+          )}
+        </div>
       </div>
     </main>
-  )
+  );
 }
