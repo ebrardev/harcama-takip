@@ -29,11 +29,11 @@ export default function Home() {
   const addItem = async (e) => {
     e.preventDefault();
     if (newItem.name !== '' && newItem.price !== '') {
+      setNewItem({ name: '', price: '' }); // İlk olarak input değerlerini sıfırla
       await addDoc(collection(db, 'items'), {
         name: newItem.name.trim(),
         price: newItem.price.trim(),
       });
-      setNewItem({ name: '', price: '' });
     }
   };
   useEffect(() => {
